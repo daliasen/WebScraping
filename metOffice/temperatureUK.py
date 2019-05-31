@@ -18,7 +18,7 @@ def request_met_office(resource, params = ''):
   response.raise_for_status()
   return response.json()
 
-def getLocationID(api_key, desired_location = 'London'):
+def get_location_id(api_key, desired_location = 'London'):
   locations = request_met_office('val/wxfcs/all/json/sitelist') # daily and three-hourly forecast
   locations = locations['Locations']['Location']
 
@@ -30,7 +30,7 @@ def getLocationID(api_key, desired_location = 'London'):
     sys.exit('location ID not found')
   return location_id, location_name
   
-def getCurrentTimestamp(api_key):
+def get_closest_timestamp(api_key):
   # find the timestamp closest to the current time
   capabilities = request_met_office('val/wxfcs/all/json/capabilities', params = 'res=3hourly')
   timestamps = capabilities['Resource']['TimeSteps']['TS'] # a list of timestamps
@@ -63,11 +63,11 @@ if len(sys.argv) > 2:
   desired_location = ' '.join(sys.argv[2:])
 
 if 'desired_location' in locals():
-  location_id, location_name = getLocationID(api_key, desired_location)
+  location_id, location_name = get_location_id(api_key, desired_location)
 else:
-  location_id, location_name = getLocationID(api_key) # use default location
+  location_id, location_name = get_location_id(api_key) # use default location
 
-current_timestamp = getCurrentTimestamp(api_key)
+current_timestamp = get_closest_timestamp(api_key)
 
 # Download the JSON data from metoffice.gov.uk API.
 weather = request_met_office('val/wxfcs/all/json/' + location_id, params = 'res=3hourly&time=' + current_timestamp) # JSON to Python dict
