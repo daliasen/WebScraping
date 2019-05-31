@@ -1,18 +1,25 @@
 #! python3
 # Get the current temperature in a location in the UK using Met Office API
 
+from config import MET_OFFICE_API_KEY
 import requests
 import sys
 import pprint
 from datetime import datetime
 
+TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+def request_met_office(resource, params = ''):
+  if len(params) > 0:
+    params += '&'
+  params += 'key=' + MET_OFFICE_API_KEY
+  url = 'http://datapoint.metoffice.gov.uk/public/data/' + resource + '?' + params
+  response = requests.get(url)
+  response.raise_for_status()
+  return response.json()
+
 def getLocationID(api_key, desired_location = 'London'):
-  # find the location ID
-  resource = 'val/wxfcs/all/json/sitelist' # locations with daily and three-hourly forecast
-  url_location = 'http://datapoint.metoffice.gov.uk/public/data/%s?key=%s' % (resource, api_key)
-  response_locations = requests.get(url_location)
-  response_locations.raise_for_status()
-  locations = response_locations.json() # JSON to Python dict
+  locations = request_met_office('val/wxfcs/all/json/sitelist') # daily and three-hourly forecast
   locations = locations['Locations']['Location']
 
   for location in locations:  
@@ -25,17 +32,13 @@ def getLocationID(api_key, desired_location = 'London'):
   
 def getCurrentTimestamp(api_key):
   # find the timestamp closest to the current time
-  url_times = 'http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/capabilities?res=3hourly&key=%s' % (api_key)
-  response_timestamps = requests.get(url_times)
-  response_timestamps.raise_for_status()
-  timestamps = response_timestamps.json() # JSON to Python dict
-
-  timestamps = timestamps['Resource']['TimeSteps']['TS'] # a list of timestamps
+  capabilities = request_met_office('val/wxfcs/all/json/capabilities', params = 'res=3hourly')
+  timestamps = capabilities['Resource']['TimeSteps']['TS'] # a list of timestamps
   current_timestamp = datetime.today()
 
   deltas = []
   for timestamp in timestamps:
-    timestamp_datetime = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+    timestamp_datetime = datetime.strptime(timestamp, TIME_FORMAT)
     delta = current_timestamp - timestamp_datetime
     deltas.append(abs(delta.total_seconds()))
     #print('timestamp: ' + str(timestamp))
@@ -67,11 +70,7 @@ else:
 current_timestamp = getCurrentTimestamp(api_key)
 
 # Download the JSON data from metoffice.gov.uk API.
-url ='http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/%s?res=3hourly&key=%s&time=%s' % (location_id, api_key, current_timestamp)
-
-response_weather = requests.get(url)
-response_weather.raise_for_status()
-weather = response_weather.json() # JSON to Python dict
+weather = request_met_office('val/wxfcs/all/json/' + location_id, params = 'res=3hourly&time=' + current_timestamp) # JSON to Python dict
 
 rep = weather['SiteRep']['DV']['Location']['Period']['Rep']
 #pprint.pprint(rep)
