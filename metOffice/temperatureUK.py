@@ -1,9 +1,10 @@
 #! python3
 # Get the current temperature in a location in the UK using Met Office API
 
-import requests, sys, pprint
+import requests
+import sys
+import pprint
 from datetime import datetime
-import numpy as np
 
 def getLocationID(api_key, desired_location = 'London'):
   # find the location ID
